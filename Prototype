@@ -1,0 +1,97 @@
+
+import pickle ,os 
+
+
+def new_theatre(n):
+    
+    f = open('theatre', 'wb')
+
+    seats = [[0 for i in range(n)] for i in range(n)]
+
+    pickle.dump(seats,f)
+
+def book(count ):
+
+    
+    
+    #PRINTING THE THEATRE SEATS
+    f = open('theatre' , 'rb')
+    while True:
+
+        try:
+            seats = pickle.load(f)
+
+        except EOFError:
+            break
+        
+    print(seats)
+
+    for i in range(5):
+        print('row ', i, '     :     ',end = '')
+        for j in range(5):
+
+            print(seats[i][j] , ' | ',end = '')
+        print()
+        print('----------')
+
+    #Choosing seats
+    positions = []    
+    for i in range(count):
+        row = int(input("Total number of rows are 5 . Enter the row : "))
+        column =  int(input("Total number of columns are 5 . Enter the column: "))
+
+        positions.append([row, column])
+
+    print('positions:' , positions)
+
+    #Checking if chosen seats are already booked
+    taken=  False
+    for i in range(len(positions)):
+        for j in range(2):
+            if seats[i][j]==1:
+                taken = True
+                print("Seats are already taken !")
+                break
+    print(taken)
+    #Booking the seats
+    if taken == False:
+        for i in positions:
+
+            x,y=  i[0], i[1]
+
+            for i in range(5):
+                for j in range(5):
+
+                    if i==x and j==y:
+
+                        seats[i][j]= 1
+
+        print("Seats booked !!", 'Your total price is ',count*100)
+        print(seats)
+
+        f.close()
+
+        # CHANGING IN FILE
+        f = open('theatre' , 'wb')
+        pickle.dump(seats, f)
+        print('\n','Seats modified in file')
+        f.close()
+
+        # PRINTING NEW CONTENTS OF FILE
+        f = open('theatre' , 'rb')
+        while True:
+
+            try:
+                seats1 = pickle.load(f)
+
+            except EOFError:
+                break
+            
+        print('new file content : ', seats1)
+
+        if seats1 == seats:
+            print()
+            print("Changes made in the file successfully ")
+
+
+book(2)
