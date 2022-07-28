@@ -1,0 +1,199 @@
+
+import pickle ,os ,csv
+
+import pandas as pd
+import numpy as np
+
+from datetime import datetime
+
+def new_theatre(n):
+    
+    f = open('theatre', 'wb')
+
+    seats = [[0 for i in range(n)] for i in range(n)]
+
+    pickle.dump(seats,f)
+
+def book(count ):
+    global no_of_tickets
+    no_of_tickets = count
+    global name,phone
+    name = input("Enter your name : ")
+    phone = input("Enter your contact number : ")    
+    
+
+
+    #PRINTING THE THEATRE SEATS
+    f = open('theatre' , 'rb')
+    while True:
+
+        try:
+            seats = pickle.load(f)
+
+        except EOFError:
+            break
+        
+    print(seats)
+
+    for i in range(5):
+        print('row ', i, '     :     ',end = '')
+        for j in range(5):
+
+            print(seats[i][j] , ' | ',end = '')
+        print()
+        print('----------')
+
+    #Choosing seats
+    def select_seats():
+        global positions,pos2
+        positions = []    
+        for i in range(count):
+            row = int(input("Total number of rows are 5 . Enter the row : "))
+            column =  int(input("Total number of columns are 5 . Enter the column: "))
+
+            #Checking if user has entered valid seat number
+            while row not in [0,1,2,3,4] or column not in [i for i in range(5)]:
+                print('Seat does not exist \nEnter a valid seat : ')
+
+                row = int(input("Total number of rows are 5 . Enter the row : "))
+                column =  int(input("Total number of columns are 5 . Enter the column: "))
+
+            else:
+                positions.append([row, column])
+
+        pos2 = []
+        for i in positions:
+            if i not in pos2:
+                pos2.append(i)
+    select_seats()
+    while len(positions)!=len(pos2):
+        print("You cannot book the same seat more than once")
+        select_seats()
+    
+    #Checking if chosen seats are already booked
+    taken=  False
+
+    for pos in positions:
+        if seats[pos[0]][pos[1]]==1:
+            taken = True
+            print("Seats are already taken !")
+            break
+
+    print(taken)
+
+    #Booking the seats
+    if taken == False:
+        for i in positions:
+
+            x,y=  i[0], i[1]
+
+            for i in range(5):
+                for j in range(5):
+
+                    if i==x and j==y:
+
+                        seats[i][j]= 1
+
+        price = count*100
+        print("Seats booked !!", 'Your total price is ',price)
+        print(seats)
+
+        f.close()
+
+
+
+        # CHANGING IN FILE
+        f = open('theatre' , 'wb')
+        pickle.dump(seats, f)
+        print('\n','Seats modified in file')
+        f.close()
+
+        # PRINTING NEW CONTENTS OF FILE
+        f = open('theatre' , 'rb')
+        while True:
+
+            try:
+                seats1 = pickle.load(f)
+
+            except EOFError:
+                break
+            
+        print('new file content : ', seats1)
+
+        if seats1 == seats:
+            print()
+            print("Changes made in the file successfully ")
+
+        dt_string = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        # Storing the data in CSV file
+        with open('records.csv','a+') as f:
+
+            csv_w = csv.writer(f)
+
+            csv_w.writerow([name,phone,count,positions,dt_string])
+            
+#Display all the previous bookings
+def display_bookings():
+
+    with open('records.csv','r',newline = '') as f:
+
+        csv_r = csv.reader(f)
+
+        for rec in csv_r:
+            print(rec)
+    records = pd.read_csv("records.csv")
+    print(records)
+
+
+def cancellation():
+    name = input("Enter name : ")
+    
+    phone = input("Enter phone number : ")
+
+    with open('records.csv','r',newline = '\n') as f:
+        flag = False
+
+        csv_r = csv.reader(f)
+        updated_record = []
+        for rec in csv_r:
+            print(rec)
+            
+            if len(rec)!=0 and rec[0]==name and rec[1] == phone:
+                rec_delete =rec
+                print(rec_delete)
+                flag = True
+                print(rec)
+                continue
+            updated_record.append(rec)
+
+        if flag==False:
+            print("Record not found")
+
+        else:
+            confirm = input(f"Do you want to confirm your cancellation ?? You had booked {rec_delete[2]} tickets {rec_delete[4]}")
+            if confirm == 'Yes':
+                #rec_delete[4][ :2]
+                if 28== datetime.now().strftime("%d"):
+                    print("Cancelling")
+                    with open('records.csv','w+',newline= '\n') as f:
+                        csv_writer = csv.writer(f)
+                        csv_writer.writerows(updated_record)
+                        
+                        # For printing 
+                        f.seek(0)
+                        csv_r = csv.reader(f)
+                        for rec in csv_r:
+                            print(rec)
+
+                        print("Cancelled Successfully !!")
+                        
+
+
+
+
+
+        
+'''book(2)
+display_bookings()
+'''
+cancellation()
