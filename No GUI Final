@@ -1,0 +1,232 @@
+import pickle
+#from datetime import datetime
+
+import mysql.connector
+
+data = mysql.connector.connect(host = 'localhost' ,  database = 'cbse'  ,  user = 'root' , passwd = 'sd221174' , charset = 'utf8')
+mycursor = data.cursor()
+movie = 'No Time to Die !! '
+
+'''table_name = 'theatre'
+qr=f"create table theatre( name varchar(10) , phone int(10) primary key, TicketCount int(2) , positions varchar(20) , amount int(3));"
+mycursor.execute(qr)
+print("table created")'''
+
+
+def empty_theatre():
+    #It resets the theatre with no seats booked. 
+    f = open('theatre', 'wb')
+
+    seats = [[0 for i in range(5)] for i in range(5)]
+
+    pickle.dump(seats,f)
+
+def display_theatre():
+    
+    #PRINTING THE THEATRE SEATS
+    f = open('theatre' , 'rb')
+    while True:
+
+        try:
+            seats = pickle.load(f)
+
+        except EOFError:
+            break
+        
+    #print(seats)
+    for i in range(5):
+        print('row ', i, '     :     ',end = '')
+        for j in range(5):
+
+            print(seats[i][j] , ' | ',end = '')
+        print()
+        print('----------')
+    f.close()
+    return seats
+
+def book():
+    global no_of_tickets ,seats
+    no_of_tickets = int(input("How many tickets do you want to book ? :  "))
+
+    global name,phone
+    name = input("Enter your name : ")
+    phone = input("Enter your contact number : ")    
+    
+
+
+    seats = display_theatre()
+
+
+    #Choosing seats
+    
+    global positions
+    positions = []    
+    for i in range(no_of_tickets):
+        row = int(input("Total number of rows are 5 . Enter the row : "))
+        column =  int(input("Total number of columns are 5 . Enter the column: "))
+
+        #Checking if user has entered valid seat number
+        while row not in [i for i in range(5)] or column not in [i for i in range(5)]:
+            print('Seat does not exist \nEnter a valid seat : ')
+
+            row = int(input("Total number of rows are 5 . Enter the row : "))
+            column =  int(input("Total number of columns are 5 . Enter the column: "))
+
+        else:
+            #Check if user is bokking same seat twice
+            while [row,column] in positions:
+                print("You cannot book the same seat more than once")
+                row = int(input("Total number of rows are 5 . Enter the row : "))
+                column =  int(input("Total number of columns are 5 . Enter the column: "))
+
+            else:
+                positions.append([row, column])
+
+    #Checking if chosen seats are already booked
+    taken=  False
+
+    for pos in positions:
+        if seats[pos[0]][pos[1]]==1:
+            taken = True
+            print("Seats are already taken !")
+            break
+
+    #Booking the seats
+    if taken == False:
+        for i in positions:
+
+            seats[i[0]][i[1]] = 1 
+
+        price = no_of_tickets*100
+        print("Seats booked !!", 'Your total price is ',price)
+        
+
+        pos_string = ""
+        for i in positions:
+            for j in i:
+                pos_string+=str(j)
+            pos_string +=' '
+
+        # CHANGING IN FILE
+        f = open('theatre' , 'wb')
+        pickle.dump(seats, f)
+        #print('\n','Seats modified in file')
+        f.close()
+
+        # PRINTING NEW CONTENTS OF FILE
+        f = open('theatre' , 'rb')
+        while True:
+
+            try:
+                seats1 = pickle.load(f)
+
+            except EOFError:
+                break
+            
+
+        #Check if changes are made in the file successfully 
+        if seats1 == seats:
+            print()
+            print("Changes made in the file successfully ")
+
+        
+        #Adding data to database
+        qr = f"insert into theatre values('{name}',{phone} , {no_of_tickets} , '{pos_string}' , {price});"
+        mycursor.execute(qr)
+        data.commit()
+
+
+        '''dt_string = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        # Storing the data in CSV file
+        with open('records.csv','a+') as f:
+
+            csv_w = csv.writer(f)
+
+            csv_w.writerow([name,phone,no_of_tickets,positions,dt_string])'''
+
+def cancellation():
+    phone1 = int(input("Enter your phone number : "))
+    
+    seats = display_theatre()
+    qr= f'select * from theatre where phone = {phone1};'
+
+    mycursor.execute(qr)
+    info1 =mycursor.fetchall()[0]
+    print(info1)
+    if info1[3] != "No seat booked":
+        print(f"Welcome back {info1[0]}")
+        confirmation = input(f"You had booked {info1[2]} tickets. Do you want to cancel them ? (yes/no) . You will recieve half refund : ")
+        if confirmation.lower() == 'yes':
+            pos = info1[3]
+            
+            for i in pos.split():
+                seats[int(i[0])][int(i[1])] = 0 
+            
+            f = open('theatre' , 'wb')
+            pickle.dump(seats, f)
+            f.close()
+            print("Changes made in the file successfully")
+
+            qr = f"update theatre set positions = 'No seat booked'  where phone= {phone1}; "
+            mycursor.execute(qr)
+            data.commit()
+
+            qr = f"update theatre set amount = 0.5*amount  where phone= {phone1}; "
+            mycursor.execute(qr)
+            data.commit()
+
+
+            print("Successfully cancelled your tickets . You will receive half of your money back.")
+    else:
+        print("You have already taken refund !" )
+
+def show_table():
+
+    print("ALL RECORDS : ")
+    qr = "select * from theatre;"
+    mycursor.execute(qr)
+
+    t = mycursor.fetchall()
+
+    for i in t:
+        print(i)
+
+
+        
+    #count_cancel = int(input("How many tickets do you want to cancel?"))
+
+# MAIN
+print("---------------WELCOME TO KING THEATRE---------------")
+print(f"Currently showing {movie} ")
+while True:
+    try:
+        option = int(input("1:admin controls , 2: book seats, 3: display all seats , 4: cancellation , 5: quit : "))
+        if option ==1:
+            passwd = input("Enter the password for admin control : ")
+            if passwd == 'king21':
+                print("LOGGED IN SUCCESSFULLY !! ")
+                choice = int(input(' 1: reset theatre / start a new theatre , 2: show database entries '))
+                if choice == 1:
+                    empty_theatre()
+                    print("Theatre reset successful! ")
+                    display_theatre()
+                elif choice==2:
+                    show_table()
+
+        elif option==2:
+            book()
+
+        elif option==3:
+            display_theatre()
+
+        elif option==4:
+            cancellation()
+
+        elif option==5:
+            break   
+
+        else:
+            option = int(input("Enter a valid option : "))
+    
+    except :
+        continue
